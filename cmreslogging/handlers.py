@@ -43,6 +43,7 @@ class CMRESHandler(logging.Handler):
         BASIC_AUTH = 1
         KERBEROS_AUTH = 2
         AWS_SIGNED_AUTH = 3
+        API_KEY_AUTH = 4
 
     class IndexNameFrequency(Enum):
         """ Index type supported
@@ -64,6 +65,7 @@ class CMRESHandler(logging.Handler):
     __DEFAULT_AWS_ACCESS_KEY = ''
     __DEFAULT_AWS_SECRET_KEY = ''
     __DEFAULT_AWS_REGION = ''
+    __DEFAULT_API_KEY = None
     __DEFAULT_USE_SSL = False
     __DEFAULT_VERIFY_SSL = True
     __DEFAULT_AUTH_TYPE = AuthType.NO_AUTH
@@ -128,6 +130,7 @@ class CMRESHandler(logging.Handler):
                  aws_access_key=__DEFAULT_AWS_ACCESS_KEY,
                  aws_secret_key=__DEFAULT_AWS_SECRET_KEY,
                  aws_region=__DEFAULT_AWS_REGION,
+                 api_key=__DEFAULT_API_KEY,
                  auth_type=__DEFAULT_AUTH_TYPE,
                  use_ssl=__DEFAULT_USE_SSL,
                  verify_ssl=__DEFAULT_VERIFY_SSL,
@@ -153,8 +156,10 @@ class CMRESHandler(logging.Handler):
                     the AWS secret key of the  the AWS IAM user
         :param aws_region: When ```CMRESHandler.AuthType.AWS_SIGNED_AUTH``` is used this argument must contain
                     the AWS region of the  the AWS Elasticsearch servers, for example```'us-east'
+        :param auth_api_key: When `CMRESHandler.AuthType.API_KEY_AUTH```is used this argument must contain the API
+                    Key to use for authentication. API Key authentication can be given as either base64 encoded string or a tuple.
         :param auth_type: The authentication type to be used in the connection ```CMRESHandler.AuthType```
-                    Currently, NO_AUTH, BASIC_AUTH, KERBEROS_AUTH are supported
+                    Currently, NO_AUTH, BASIC_AUTH, KERBEROS_AUTH, API_KEY_AUTH are supported
         :param use_ssl: A boolean that defines if the communications should use SSL encrypted communication
         :param verify_ssl: A boolean that defines if the SSL certificates are validated or not
         :param buffer_size: An int, Once this size is reached on the internal buffer results are flushed into ES
@@ -181,6 +186,7 @@ class CMRESHandler(logging.Handler):
         self.aws_access_key = aws_access_key
         self.aws_secret_key = aws_secret_key
         self.aws_region = aws_region
+        self.api_key = api_key
         self.auth_type = auth_type
         self.use_ssl = use_ssl
         self.verify_certs = verify_ssl
@@ -252,6 +258,16 @@ class CMRESHandler(logging.Handler):
                     connection_class=RequestsHttpConnection,
                     serializer=self.serializer
                 )
+            return self._client
+
+        if self.auth_type == CMRESHandler.AuthType.API_KEY_AUTH:
+            if self._client is None:
+                return Elasticsearch(hosts=self.hosts,
+                                     api_key=self.api_key,
+                                     use_ssl=self.use_ssl,
+                                     verify_certs=self.verify_certs,
+                                     connection_class=RequestsHttpConnection,
+                                     serializer=self.serializer)
             return self._client
 
         raise ValueError("Authentication method not supported")
