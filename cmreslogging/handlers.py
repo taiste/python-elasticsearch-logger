@@ -81,7 +81,16 @@ class CMRESHandler(logging.Handler):
     __LOGGING_FILTER_FIELDS = ['msecs',
                                'relativeCreated',
                                'levelno',
-                               'created']
+                               'created',
+                               'pathname',
+                               'filename',
+                               'lineno',
+                               'thread',
+                               'threadName',
+                               'processName',
+                               'process',
+                               'funcName',
+                               'args']
 
     @staticmethod
     def _get_daily_index_name(es_index_name):
