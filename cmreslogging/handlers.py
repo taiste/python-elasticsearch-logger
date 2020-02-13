@@ -314,14 +314,13 @@ class CMRESHandler(logging.Handler):
                 with self._buffer_lock:
                     logs_buffer = self._buffer
                     self._buffer = []
-                actions = (
-                    {
-                        '_index': self._index_name_func.__func__(self.es_index_name),
-                        '_type': self.es_doc_type,
-                        '_source': log_record
-                    }
-                    for log_record in logs_buffer
-                )
+
+                actions = ({
+                    '_index': self._index_name_func.__func__(self.es_index_name),
+                    '_type': self.es_doc_type,
+                    '_source': log_record
+                } for log_record in logs_buffer)
+
                 eshelpers.bulk(
                     client=self.__get_es_client(),
                     actions=actions,
@@ -348,15 +347,17 @@ class CMRESHandler(logging.Handler):
         :param record: A class of type ```logging.LogRecord```
         :return: None
         """
-        self.format(record)
+        msg = self.format(record)
 
         rec = self.es_additional_fields.copy()
         for key, value in record.__dict__.items():
-            if key not in CMRESHandler.__LOGGING_FILTER_FIELDS:
-                if key == "args":
-                    value = tuple(str(arg) for arg in value)
-                rec[key] = "" if value is None else value
-        rec[self.default_timestamp_field_name] = self.__get_es_datetime_str(record.created)
+            if value and key not in CMRESHandler.__LOGGING_FILTER_FIELDS:
+                rec[key] = value
+
+        rec[self.default_timestamp_field_name] = \
+            self.__get_es_datetime_str(record.created)
+
+        rec['msg'] = msg
         with self._buffer_lock:
             self._buffer.append(rec)
 
